@@ -16,6 +16,10 @@ def configuration_score(
       redundancia y exposición en ese orden.
     """
     # TODO: Add your code here
+    valores=problem.score_components(configuration)
+    cobertura, redundancia, exposicion = valores
+    puntaje=cobertura-redundancia-exposicion
+    return puntaje
     raise NotImplementedError("Punto 1: implemente configuration_score")
 
 
@@ -38,7 +42,81 @@ def hill_climbing(
     - Inicialice los historiales con la configuración inicial y agregue solo las
       mejoras aceptadas antes de retornar el OptimizationResult.
     """
+    """
+    Este era mi codigo inicial 
+    
+    inicial=initial_configuration
+        puntaje_inicial=configuration_score(problem, inicial)
+        contador=0
+        history=[inicial]
+        score_history=[puntaje_inicial]
+        puntaje_mejor=-100000000
+        while contador<max_iterations:
+            vecinos=problem.neighbors(inicial)
+            for vecino in vecinos:
+                if configuration_score(problem, vecino)>puntaje_mejor:
+                    puntaje_mejor=configuration_score(problem, vecino)
+                    mejor_vecino=vecino
+            if puntaje_mejor>puntaje_inicial:
+                inicial=mejor_vecino
+                puntaje_inicial=puntaje_mejor
+                contador+=1
+                history.append(inicial)
+                score_history.append(puntaje_inicial)
+            else:
+                break
+        return OptimizationResult(inicial, puntaje_inicial, contador, history, score_history)
+        
+    Se lo mandé a Claude y me dijo que
+    1. Estás llamando configuration_score dos veces por vecino
+    if configuration_score(problem, vecino)>puntaje_mejor:
+        puntaje_mejor=configuration_score(problem, vecino)
+
+    Aquí calculas el puntaje del mismo vecino dos veces cuando la condición es verdadera (una en el if, otra dentro). 
+    Eso infla artificialmente tu contador de evaluaciones — y encima, no tienes ningún contador de evaluaciones en tu código. 
+    Necesitas:
+    Guardar el resultado de configuration_score(problem, vecino) en una variable una sola vez por vecino.
+    Sumar 1 a un contador de evaluaciones cada vez que llamas esa función (o sea, una vez por cada vecino recorrido, sin importar si mejora o no).
+    
+    2. puntaje_mejor y mejor_vecino no se reinician en cada vuelta del while
+    Los inicializas una sola vez, antes del while. Eso significa que cuando entras a la segunda vuelta del bucle, puntaje_mejor todavía tiene el valor 
+    de la ronda anterior en lugar de empezar de cero para buscar el máximo entre los nuevos vecinos. Aunque en este caso particular "funciona por casualidad" 
+    (porque puntaje_mejor termina quedando igual a puntaje_inicial justo antes), es frágil y confuso. 
+    Debes reiniciar dentro del while, al principio de cada ronda, antes del for:
+    puntaje_mejor a un valor muy bajo (como tienes, -100000000, o mejor usa float('-inf')).
+    mejor_vecino a algo como None.
+    
+    Entonces corregí estas dos cosas en mi código
+    """
     # TODO: Add your code here
+    inicial=initial_configuration
+    puntaje_inicial=configuration_score(problem, inicial)
+    contador=0
+    history=[inicial]
+    score_history=[puntaje_inicial]
+    
+    evaluaciones=1
+    while contador<max_iterations:
+        vecinos=problem.neighbors(inicial)
+        puntaje_mejor=-1000000000000000000
+        mejor_vecino=None
+        for vecino in vecinos:
+            puntaje_vecino=configuration_score(problem, vecino)
+            evaluaciones+=1
+            if puntaje_vecino>puntaje_mejor:
+                puntaje_mejor=puntaje_vecino
+                mejor_vecino=vecino
+        if puntaje_mejor>puntaje_inicial:
+            inicial=mejor_vecino
+            puntaje_inicial=puntaje_mejor
+            contador+=1
+            history.append(inicial)
+            score_history.append(puntaje_inicial)
+        else:
+            break
+    return OptimizationResult(inicial, puntaje_inicial, evaluaciones, contador, history, score_history)
+            
+    
     raise NotImplementedError("Punto 1: implemente hill_climbing")
 
 
