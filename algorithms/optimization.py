@@ -127,7 +127,7 @@ def cooling_schedule(initial_temperature: float, cooling_rate: float, iteration:
     Esta función se invoca desde simulated_annealing en cada iteración.
     """
     # TODO: Add your code here
-    raise NotImplementedError("Punto 2: implemente cooling_schedule")
+    return initial_temperature * (cooling_rate ** iteration)
 
 
 def simulated_annealing(
@@ -153,12 +153,105 @@ def simulated_annealing(
     - Mantenga separados el estado actual y el mejor encontrado; registre el
       estado actual después de cada intento, incluso si se rechaza.
     - Detenga la ejecución cuando la temperatura alcance minimum_temperature.
+    
+    Aproximación inicial del codigo hecha por mi, en esta me base a partir del contexto del enunciado y del pseudocodigo brindado en clase
+    
+    rng = rng or random.Random()
+    minimum_temperature = 1e-9
+    actual = initial_configuration
+    t = initial_temperature
+    mejor = actual
+    for i in range (max_iterations):
+        temperatura = cooling_schedule(t, cooling_rate, i )
+        if temperatura == 0:
+            return mejor
+        else:
+            siguiente = rng.choice(problem.neighbors(actual))
+            diferencia = configuration_score(problem,siguiente) - configuration_score(problem,actual)
+            if diferencia > 0:
+                actual = siguiente
+            else:
+                probabilidad = math.exp(diferencia / temperatura)
+                if rng.random() < probabilidad:
+                    actual = siguiente
+            if configuration_score(problem,actual) > configuration_score(problem, mejor):
+                mejor = actual
+                
+    return mejor
+                
+    A partir de esto decidi pasarle a claude mi codigo para que me brindara retroalimentación y me pudiera ayudar a identificar posibles errores sin darme directamente el codigo
+    El prompt usado fue: Hola claude, tengo el siguiente codigo de recocido simulado, me podrias brindar retroalimentacion de su funcionamiento y los posibles errores del mismo sin darme el codigo resuelto            
+                
+    Esto fue lo que me contesto la IA:
+    
+    Dale, vamos por partes — te señalo dónde están los problemas y te dejo preguntas guía para que tú mismo llegues a la corrección.
+
+    1. La condición de parada por temperatura
+    Sigue siendo if temperatura == 0. Pregúntate: ¿con una fórmula T0 * alpha^i, existe algún i para el cual el resultado sea matemáticamente igual a cero? ¿O simplemente se hace cada vez más pequeño sin tocar nunca el cero? Tienes una variable minimum_temperature definida arriba que no estás usando en ningún lado — esa es la pista de qué deberías comparar en vez de 0.
+
+    2. El tipo de retorno
+    Mira la firma de la función: -> OptimizationResult. Ahora mismo tu return mejor entrega una Configuration, no un OptimizationResult. Pregúntate:
+
+    ¿Qué campos tiene la clase OptimizationResult? (deberías ir a mirar optimization/result.py, que el enunciado dice que puedes consultar aunque no modificar).
+    De esos campos, ¿cuáles ya tienes disponibles en tu función (mejor, su puntaje) y cuáles te falta ir armando a lo largo del loop (evaluaciones contadas, iteraciones contadas, historial)?
+    ¿En qué momento del loop tendría sentido ir agregando cada paso al historial?
+
+    3. Evaluaciones repetidas
+    Cuenta cuántas veces llamas configuration_score en una sola vuelta del for. ¿Ese número te parece necesario, o hay algún resultado que ya calculaste antes y podrías guardar en una variable para reusarlo más abajo, en vez de volver a pedirlo?
+
+    4. Un detalle que no habíamos visto: ¿qué pasa si nunca se cumple la parada por temperatura?
+    Si el for corre las max_iterations completas sin que la temperatura baje del mínimo, ¿tu función también retorna algo correcto al final, o solo cubriste el caso del return de en medio? (Esto se conecta directo con el punto 2 — vas a necesitar construir el OptimizationResult en más de un lugar, o reorganizar la lógica para que solo haya un punto de salida).
+
+    Tómate estos cuatro puntos, intenta resolverlos, y me muestras la siguiente versión.
+    
+    Luego de revisar esos errores y verificar cosas como que el tipo de retorno de la funcion debia ser un OptimizationResult, este fue mi algoritmo final.
+    
     """
     rng = rng or random.Random()
     minimum_temperature = 1e-9
+    actual = initial_configuration
+    t = initial_temperature
+    mejor = actual
+    evaluations = 0
+    iterations = 0
+    history = []
+    score_history = []
+    score_mejor = configuration_score(problem, mejor)
+    evaluations += 1
+    for i in range (max_iterations):
+        temperatura = cooling_schedule(t, cooling_rate, i )
+        score_actual = configuration_score(problem, actual)
+        evaluations += 1
+        if temperatura <= minimum_temperature:
+            iterations = i
+            break
+        else:
+            siguiente = rng.choice(problem.neighbors(actual))
+            score_siguiente = configuration_score(problem, siguiente)
+            evaluations += 1
+            diferencia = score_siguiente - score_actual
+            
+            if diferencia > 0:
+                actual = siguiente
+                score_actual = score_siguiente
+            else:
+                probabilidad = math.exp(diferencia / temperatura)
+                
+                if rng.random() < probabilidad:
+                    actual = siguiente
+                    score_actual = score_siguiente
+          
+            if score_actual > score_mejor:
+                mejor = actual
+                score_mejor = score_actual
+            
+            history.append(actual)    
+            score_history.append(score_actual)
+            
+        iterations = i + 1
+                    
+    return OptimizationResult(mejor, score_mejor, evaluations, iterations, history, score_history)   
 
-    # TODO: Add your code here
-    raise NotImplementedError("Punto 2: implemente simulated_annealing")
 
 
 def one_point_crossover(
