@@ -271,9 +271,10 @@ def one_point_crossover(
         raise ValueError("Los padres deben tener la misma longitud")
     if len(parent1) < 2:
         return parent1, parent2
-
-    # TODO: Add your code here
-    raise NotImplementedError("Punto 3: implemente one_point_crossover")
+    base= rng.randrange(1,len(parent1) )
+    hijito1=parent1[:base] +parent2[base:]
+    hijito2=parent2[:base]+ parent1[base:]
+    return hijito1,hijito2
 
 
 def swap_mutation(
@@ -292,8 +293,18 @@ def swap_mutation(
     - Si alguno de los dos grupos está vacío, no hay un intercambio posible.
     - Retorne una tupla nueva; no modifique el individuo recibido.
     """
-    # TODO: Add your code here
-    raise NotImplementedError("Punto 3: implemente swap_mutation")
+    if rng.random() >= mutation_probability:
+        return tuple(individual)
+    bitiados= [ bit for bit in range(len(individual)) if individual[bit]==1]
+    bititristes= [ bit for bit in range(len(individual)) if individual[bit]==0]
+    if not bitiados or not bititristes:
+        return tuple(individual)
+    bitiadorn= rng.choice(bitiados)
+    bititristern= rng.choice(bititristes)
+    mutaciones= list(individual)
+    mutaciones[bitiadorn]=0
+    mutaciones[bititristern]=1
+    return tuple(mutaciones)
 
 
 def genetic_algorithm(
@@ -329,5 +340,191 @@ def genetic_algorithm(
     if not 0 <= elite_size <= population_size:
         raise ValueError("elite_size debe estar entre 0 y population_size")
 
-    # TODO: Add your code here
-    raise NotImplementedError("Punto 3: implemente genetic_algorithm")
+    """total=problem.initial_population(population_size, rng)
+    besto= max(total, key=lambda x: configuration_score(problem, x))
+    besto_score= configuration_score(problem, besto)
+    general=[besto_score]
+    notas=len(total)
+    for i in range(generations):
+        besto_peor=sorted(total, key=lambda x: configuration_score(problem, x),reverse=True)
+        privilegiados=list(besto_peor[:elite_size])
+        total=privilegiados
+        
+    bueno en este punto me bloque y no pude continuar ya que no encontre ninguna forma de hacer que
+    la poblacion original que se tenia volviera a la normalidad despues de haber 
+    hecho el tema de la elite por lo que le envie a chat el siguiente prompt= bro estoy haciendo un algoritmo genetico ya logre hacer las dos funciones auxiliares pero llegue a un stop en la main, ya que no se como hacer para que la poblacion vuelva al tamaño original que tenia antes del elitismo
+    a lo que chat me respondio Sí brotha, la idea es: después del elitismo tienes, por ejemplo, 2 privilegiados; entonces generas hijos de dos en dos hasta volver a population_size = 40.
+
+Primero tienes un error aquí:
+
+besto = max(
+    total,
+    key=lambda x: configuration_score(problem, x)
+)
+
+Habías puesto individuo, pero la variable del lambda se llama x.
+
+Después de:
+
+privilegiados = list(besto_peor[:elite_size])
+
+pones esto:
+
+scores = [
+    configuration_score(problem, individuo)
+    for individuo in total
+]
+
+while len(privilegiados) < population_size:
+
+    padre1 = problem.tournament_select(
+        total,
+        scores,
+        rng
+    )
+
+    padre2 = problem.tournament_select(
+        total,
+        scores,
+        rng
+    )
+
+    hijito1, hijito2 = one_point_crossover(
+        padre1,
+        padre2,
+        rng
+    )
+
+    hijos = [hijito1, hijito2]
+
+    for hijo in hijos:
+
+        hijo_reparado = problem.repair_configuration(
+            hijo,
+            rng
+        )
+
+        hijo_mutado = swap_mutation(
+            hijo_reparado,
+            mutation_probability,
+            rng
+        )
+
+        privilegiados.append(hijo_mutado)
+
+        if len(privilegiados) == population_size:
+            break
+
+total = privilegiados
+
+La lógica es:
+
+privilegiados empieza solamente con los élites.
+El while continúa mientras falten individuos.
+Seleccionas dos padres mediante torneo.
+Los cruzas y obtienes dos hijos.
+Reparas cada hijo porque el cruce puede alterar la cantidad de 1.
+Aplicas la mutación.
+Agregas los hijos a privilegiados.
+Cuando recuperas el tamaño original, haces:
+ asi que le hice caso y agrege los cambios que me dijo 
+ """
+    
+    total = problem.initial_population(
+        population_size,
+        rng,
+    )
+    scores = [
+        configuration_score(problem, individuo)
+        for individuo in total
+    ]
+    notas = population_size
+    besto_index = max(
+        range(population_size),
+        key=lambda index: scores[index],
+    )
+    besto = total[besto_index]
+    besto_score = scores[besto_index]
+    historial = [besto]
+    general = [besto_score]
+    for _ in range(generations):
+        besto_peor = sorted(
+            range(population_size),
+            key=lambda index: scores[index],
+            reverse=True,
+        )
+        privilegiados = [
+            total[index]
+            for index in besto_peor[:elite_size]
+        ]
+        while len(privilegiados) < population_size:
+            padre1 = problem.tournament_select(
+                total,
+                scores,
+                rng,
+            )
+            padre2 = problem.tournament_select(
+                total,
+                scores,
+                rng,
+            )
+            hijito1, hijito2 = one_point_crossover(
+                padre1,
+                padre2,
+                rng,
+            )
+            hijos = [hijito1, hijito2]
+            for hijo in hijos:
+                hijo_reparado = (
+                    problem.repair_configuration(
+                        hijo,
+                        rng,
+                    )
+                )
+                hijo_mutado = swap_mutation(
+                    hijo_reparado,
+                    mutation_probability,
+                    rng,
+                )
+                privilegiados.append(hijo_mutado)
+                if len(privilegiados) == population_size:
+                    break
+        total = privilegiados
+        scores = [
+            configuration_score(problem, individuo)
+            for individuo in total
+        ]
+        notas += population_size
+        mejor_generacion_index = max(
+            range(population_size),
+            key=lambda index: scores[index],
+        )
+        mejor_generacion = total[
+            mejor_generacion_index
+        ]
+        score_generacion = scores[
+            mejor_generacion_index
+        ]
+        if score_generacion > besto_score:
+            besto = mejor_generacion
+            besto_score = score_generacion
+        historial.append(besto)
+        general.append(besto_score)
+    return OptimizationResult(
+        best_configuration=besto,
+        best_score=besto_score,
+        evaluations=notas,
+        iterations=generations,
+        history=historial,
+        score_history=general,
+        metadata={
+            "population_size": population_size,
+            "generations": generations,
+            "mutation_probability": mutation_probability,
+            "elite_size": elite_size,
+        },
+    )
+        
+        
+        
+    
