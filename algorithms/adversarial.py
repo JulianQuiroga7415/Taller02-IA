@@ -61,5 +61,98 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         - En MAX actualice alpha y corte si valor >= beta; en MIN actualice beta
           y corte si valor <= alpha.
         """
-        # TODO: Add your code here
-        raise NotImplementedError("Punto 5: implemente AlphaBetaAgent.get_action")
+        """self.nodes_evaluated = 1
+        if state.is_win() or state.is_lose():
+            return None
+        memoria=state.get_legal_actions(0)
+        if not memoria:
+            return None
+          
+        def valor(estado:GameState, agente:int, profundidad:int, alfa:float, beta:float)->float:
+          self.nodes_evaluated+=1
+          if estado.is_win() or estado.is_lose() or profundidad== 0:
+            return evaluation_function(estado)
+          memoriamain=estado.get_legal_actions(agente)
+          if not memoriamain:
+            return evaluation_function(estado)
+          siguiente_revision =(agente+1)%estado.get_num_agents()
+          if agente==0:
+            estado_new= float("-inf")
+            for j in memoriamain:
+              elegido = estado.generate_successor(agente,j)
+              estado_new=max(estado_new,valor(elegido,siguiente_revision,profundidad-1,alfa,beta))
+              if estado_new>= beta:
+                return estado_new
+              alfa=max(alfa,estado_new)
+            return estado_new
+            este fue mi codigo inicial, logre adelantar gran parte incluyendo la funcion valor y la rama de max,
+            pero la verdad no supe si hacer min era igual que hacer max o si algo debia cambiar asi que preferi
+            preguntarle a chat de esta manera confirmo que voy por buen camino y evito errores complicados a futuro.
+            le mande el siguiente prompt bro llevo esto hecho de alfa beta voy bien? que me recomiendas agregar al codigo?
+            a lo que chat me respondio 
+            Vas muy bien brotha. Ya hiciste correctamente:
+
+            Conteo de la raíz.
+            Estados terminales.
+            Corte por profundidad.
+            Alternancia entre agentes.
+            Rama de MAX.
+            Actualización de alfa.
+            Poda cuando estado_new >= beta.
+
+            Te falta la rama de MIN y después seleccionar la acción desde la raíz.
+            Te recomiendo hacer lo mismo que hiciste en la rama de MAX, pero con las condiciones invertidas para MIN. Es decir, en lugar de buscar el máximo valor, buscarás el mínimo valor y actualizarás beta en lugar de alfa. Además, asegúrate de manejar correctamente la selección de la acción desde la raíz después de calcular los valores para todas las acciones legales del agente MAX.
+            por ultimo asegurate de agregar la raiz. Por lo que mi codigo final quedo asi"""
+        self.nodes_evaluated = 1
+        if state.is_win() or state.is_lose():
+            return None
+        memoria=state.get_legal_actions(0)
+        if not memoria:
+            return None
+          
+        def valor(estado:GameState, agente:int, profundidad:int, alfa:float, beta:float)->float:
+          self.nodes_evaluated+=1
+          if estado.is_win() or estado.is_lose() or profundidad== 0:
+            return evaluation_function(estado)
+          memoriamain=estado.get_legal_actions(agente)
+          if not memoriamain:
+            return evaluation_function(estado)
+          siguiente_revision =(agente+1)%estado.get_num_agents()
+          if agente==0:
+            estado_new= float("-inf")
+            for j in memoriamain:
+              elegido = estado.generate_successor(agente,j)
+              estado_new=max(estado_new,valor(elegido,siguiente_revision,profundidad-1,alfa,beta))
+              if estado_new>= beta:
+                return estado_new
+              alfa=max(alfa,estado_new)
+            return estado_new
+          estado_new = float("inf")
+
+          for j in memoriamain:
+            elegido = estado.generate_successor(agente,j)
+            estado_new = min(estado_new,valor(elegido,siguiente_revision,profundidad - 1,alfa,beta))
+            if estado_new <= alfa:
+                return estado_new
+            beta = min(beta,estado_new)
+          return estado_new
+        mejor_accion = memoria[0]
+        mejor_valor = float("-inf")
+
+        alfa = float("-inf")
+        beta = float("inf")
+
+        for accion in memoria:
+
+            sucesor = state.generate_successor(0,accion)
+
+            valor_accion = valor(sucesor,1,self.depth - 1,alfa,beta)
+
+            if valor_accion > mejor_valor:
+                mejor_valor = valor_accion
+                mejor_accion = accion
+
+            alfa = max(alfa,mejor_valor)
+        return mejor_accion
+            
+              
